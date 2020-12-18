@@ -30,16 +30,47 @@ class myThread (threading.Thread):
         
 class ChengShi():
     '''
-    name为城市名字
+    id 2020
+    name为城市名字 西安
     '''
-    def __init__(self,name):
+    def __init__(self,city_id,name):
         self.FangAns = []
+        self.city_id = city_id
+        # 初始化city_id
         self.name = name
         p = Pinyin()
         self.city_string = p.get_pinyin(self.name,'')
+        if self.city_string == 'zhongqing':
+            self.city_string = 'chongqing'
+        self.init_city_id()
         self.get_city_url()
         self.get_article_url()
-        #self.save_to_csv()
+    def init_city_id(self):
+        path = 'city_model.csv'
+        if os.path.exists(path):
+            city_id_model = pd.read_csv(path,index_col=0)
+        else:
+            city_id_model = pd.DataFrame(columns=('city_id','city_name'))
+        if city_id_model[(city_id_model.city_id==self.city_id)].empty:
+            temp = {'city_id':[self.city_id],'city_name':[self.city_string]}
+            temp = pd.DataFrame(temp)
+            city_id_model = pd.concat([city_id_model,temp],ignore_index=True,axis=0)
+            city_id_model.to_csv(path)
+        
+    def save_spotlist_id(self):
+            path = 'city_model_spotlist.csv'
+            if os.path.exists(path):
+                city_id_spotlist = pd.read_csv(path,index_col=0)
+            else:
+                city_id_spotlist = pd.DataFrame(columns=('citymodel_id','spotlist_id'))
+            if self.all_number%1000 == 1:
+                city_id_spotlist = city_id_spotlist[(city_id_spotlist.citymodel_id != self.city_id)]
+            if city_id_spotlist[(city_id_spotlist.spotlist_id==self.all_number)].empty:
+                temp = {'citymodel_id':[self.city_id],'spotlist_id':[self.all_number]}
+                temp = pd.DataFrame(temp)
+                city_id_spotlist = pd.concat([city_id_spotlist,temp],ignore_index=True,axis=0)
+            city_id_spotlist.to_csv(path)
+        
     def open_brower(self):
         # 设置不打开浏览器
         chrome_options = webdriver.ChromeOptions()
@@ -69,60 +100,96 @@ class ChengShi():
         self.city_url = driver.current_url + str('&p=')
         driver.close()
         
+    def  all_number_init_(self):
+        for i in range(1,41):
+            number = self.city_id*1000 + i
+            path = 'city_model_spotlist.csv'
+            if os.path.exists(path):
+                city_id_spotlist = pd.read_csv(path,index_col=0)
+            else:
+                city_id_spotlist = pd.DataFrame(columns=('citymodel_id','spotlist_id'))
+            if city_id_spotlist[(city_id_spotlist.spotlist_id==number)].empty:
+                if i ==1:
+                    self.all_number = number
+                else:
+                    self.all_number = number-1
+                break
+        
+        
+        
     def get_article_url(self):
         start = time.time()
-        all_number = 1
-        self.all_fangan = []
-        for i in range(1,4):#页数 一页三十个方案
-            page_url = self.city_url + str(i)
-            driver = self.open_brower()
-            driver.get(page_url)
-            html = driver.page_source
-            soup = BeautifulSoup(html,'html.parser')
-            driver.close()
-            whole_plans = soup.find_all('div',class_='list_product_box js_product_item')
-            # threads = []
-            for plan in whole_plans: #每页的方案
-                if plan.parent['class'][0] != 'list_ad_box':
-                    title = plan.find('p',class_='list_product_title')['title']  # 上海4日自由行·【高铁往返|3晚连住】车次全覆盖·舒适型酒店任选·高性价比·住得舒心就好
-                    pattern = re.compile(r'\+.{0,}日')
-                    if pattern.search(title) == None and all_number <= 6 :
-                        article_id = plan['data-track-product-id']
-                        fangan_url = 'https://vacations.ctrip.com/travel/detail/p' + article_id
-                        f = Fangan(all_number,fangan_url,self.city_string)
-                        if len(f.data_list) > 11:
-                            print(f.data_list)
-                            key = f.data_list[0]
-                            value = f.data_list[1:]
-                            path = 'plan/' + self.city_string + '.csv'
-                            if os.path.exists(path):
-                                old = pd.read_csv(path,index_col=0)
-                                print('读取')
-                            else:
-                                old = pd.DataFrame()
-                                print('创建')
-                            # 查看方案重复 和 数字存在
-                            repeat = 0
-                            for k in old:
-                                if old[k][0] == value[0]:
-                                    repeat = 1
+        max_number = self.city_id*1000 + 40   #最多方案
+        self.all_number_init_()
+        for i in range(1,15):#页数 一页三十个方案
+            if self.all_number <= max_number:     
+                page_url = self.city_url + str(i)
+                driver = self.open_brower()
+                driver.get(page_url)
+                html = driver.page_source
+                soup = BeautifulSoup(html,'html.parser')
+                driver.close()
+                whole_plans = soup.find_all('div',class_='list_product_box js_product_item')
+                # threads = []
+                for plan in whole_plans: #每页的方案
+                    # 创建城市-方案关联表
+                    if plan.parent['class'][0] != 'list_ad_box':
+                        title = plan.find('p',class_='list_product_title')['title']  
+                        pattern = re.compile(r'\+.{0,}日')
+                        if pattern.search(title) == None and self.all_number <= max_number :    
+                            article_id = plan['data-track-product-id']
+                            fangan_url = 'https://vacations.ctrip.com/travel/detail/p' + article_id
+                            f = Fangan(self.city_id,self.all_number,fangan_url,self.city_string)
+                            if len(f.data_list) > 11:
+                                print(self.all_number,f.data_list)
+                                path = 'spotlist.csv'
+                                if os.path.exists(path):
+                                    spotlist = pd.read_csv(path,index_col=0)
+                                    spotlist = spotlist[(spotlist.spotlist_id != self.all_number)]
+                                else:
+                                    spotlist = pd.DataFrame(columns=('spotlist_id','max_day','spotlist_image'))
+                                path = 'spotlist_houselist.csv'
+                                if os.path.exists(path):
+                                    spotlist_houselist = pd.read_csv(path,index_col=0)
+                                    spotlist_houselist = spotlist_houselist[(spotlist_houselist.spotlist_id != self.all_number)]
+                                else:
+                                    spotlist_houselist = pd.DataFrame(columns=('spotlist_id','housemodel_id'))
+                                path = 'spotlist_spot.csv'
+                                if os.path.exists(path):
+                                    spotlist_spot = pd.read_csv(path,index_col=0)
+                                    spotlist_spot = spotlist_spot[(spotlist_spot.spotlist_id != self.all_number)]
+                                else:
+                                    spotlist_spot = pd.DataFrame(columns=('spotlist_id','spotmodel_id'))
+                                
+                                
+                                if spotlist[(spotlist.spotlist_image==f.data_list[1])].empty:
+                                    self.save_spotlist_id()
+                                    temp = {'spotlist_id':[f.data_list[0]],'max_day':[f.data_list[-1][0]],'spotlist_image':[f.data_list[1]]}
+                                    temp = pd.DataFrame(temp)
+                                    spotlist = pd.concat([spotlist,temp],ignore_index=True,axis=0)
+                                    for j in range(2,12):
+                                        temp = {'spotlist_id':[self.all_number],'housemodel_id':[f.data_list[j]]}
+                                        temp = pd.DataFrame(temp)
+                                        spotlist_houselist = pd.concat([spotlist_houselist,temp],ignore_index=True,axis=0)
+                                        
+                                    for j in range(12,len(f.data_list)):
+                                        if len(f.data_list[j])!= 2 :
+                                            pass
+                                        else:
+                                            temp = {'spotlist_id':[self.all_number],'model_day':[int(f.data_list[j][0])],'spotmodel_id':[f.data_list[j][1]]}
+                                            temp = pd.DataFrame(temp)
+                                            spotlist_spot = pd.concat([spotlist_spot,temp],ignore_index=True,axis=0)
+                                else:
+                                    self.all_number = self.all_number -1
+                                
+                                self.all_number = self.all_number+1
+                                spotlist_houselist.to_csv('spotlist_houselist.csv')
+                                spotlist_spot.to_csv('spotlist_spot.csv')
+                                spotlist.to_csv('spotlist.csv')
+                                    
                             
-                            while str(key) in old:
-                                print(key,'数字存在')
-                                all_number = all_number + 1
-                                key = key + 1
-                            each = dict([(key,value)]) 
-                            new = pd.DataFrame(each)
-                            if not repeat :
-                                print('存')
-                                old = pd.concat([old,new],axis=1)
-                                old.to_csv(path)
-                                self.all_fangan.append(f.data_list)
-                                all_number = all_number +1
-                            else:
-                                print('重复了')
-                            
-                            
+                                
+                                
                             
                             
                             
@@ -135,30 +202,14 @@ class ChengShi():
                 #   t.join()
         end = time.time()
         print('总花费时间为',end-start)
-    def save_to_csv(self):
-        self.all_dict = {}
-        for i in self.all_fangan:
-            key = i[0]
-            value = i[1:]
-            each = dict([(key,value)]) 
-            for k,v in each.items():
-                self.all_dict[k] = v
-        self.plans = pd.DataFrame(dict([(k,pd.Series(v))for k,v in self.all_dict.items()]))
-        self.plans.to_csv('plan/'+self.city_string+'.csv',encoding='UTF-8')
-citys = ['西安','重庆','广州','北京']
+citys = [[2020,'西安'],[2021,'重庆'],[2022,'广州'],[2023,'北京']]
 #for c in citys:
- #   ChengShi(c)       
-a = ChengShi('西安')  
-    
-    
-    
-    
-    
-    
-    
-    
-     
-    
+ #   ChengShi(c[0],c[1])     
+#a = ChengShi(city_id=2020, name='西安')
+#a = ChengShi(city_id=2021, name='重庆')
+#a = ChengShi(city_id=2022, name='广州')
+#a = ChengShi(city_id=2023, name='北京')    
+
     
     
     

@@ -13,6 +13,7 @@ import requests
 import pandas as pd
 from comment import Comment
 from hotel import Hotel
+from fake_useragent import UserAgent
 class Fangan():
     '''
     id 为城市的id
@@ -21,13 +22,9 @@ class Fangan():
     默认保存为csv文件，命名为url中的文章id
     存方案第一张图在image文件夹中，命名为文章id，格式为jpg
     '''
-    def __init__(self,fangan_id,url,city_string=None):
-        if type(fangan_id) == int:
-            # self.fangan_id = '%03d'%fangan_id    补充为三位
-            self.fangan_id = fangan_id
-        elif type(fangan_id) == str:
-            #self.fangan_id = fangan_id.zfill(3)           补充为三位
-            self.fangan_id = int(fangan_id)
+    def __init__(self,city_id,fangan_id,url,city_string=None):
+        self.fangan_id = fangan_id
+        self.city_id = city_id
         self.flag = 1
         self.city_string = city_string
         self.url = url
@@ -81,14 +78,14 @@ class Fangan():
                                     if os.path.exists(path):
                                         hotels = pd.read_csv(path,index_col=0)
                                     else:
-                                        hotels = pd.DataFrame(columns=('name','price','description','url'))
+                                        hotels = pd.DataFrame(columns=('house_id','name','price','description','url'))
                                     if hotels[(hotels.name==self.jiudian.hotels[j])].empty:
                                         index = len(hotels)
-                                        self.data_list.append(int(index))
-                                        hotel = pd.DataFrame({'name':[self.jiudian.hotels[j]],'price':[self.jiudian.prices[j]],'description':[self.jiudian.descriptions[j]],'url':[self.jiudian.urls[j]]})
+                                        self.data_list.append(int(self.city_id*1000+index))
+                                        hotel = pd.DataFrame({'house_id':[self.city_id*1000+index],'name':[self.jiudian.hotels[j]],'price':[self.jiudian.prices[j]],'description':[self.jiudian.descriptions[j]],'url':[self.jiudian.urls[j]]})
                                         hotels = pd.concat([hotels,hotel],ignore_index=True,axis=0)
                                     else:
-                                        self.data_list.append(int(hotels[(hotels.name==self.jiudian.hotels[j])].index[0]))                               
+                                        self.data_list.append(int(self.city_id*1000 + hotels[(hotels.name==self.jiudian.hotels[j])].index[0]))                               
                                     hotels.to_csv(path,encoding = 'UTF-8')
                                 self.flag = 0
                       
@@ -98,7 +95,7 @@ class Fangan():
                             if os.path.exists(path):
                                 places = pd.read_csv(path,index_col=0)
                             else:
-                                places = pd.DataFrame(columns=('name','price','description','picurl'))
+                                places = pd.DataFrame(columns=('spot_id','name','price','description','picurl'))
                             if places[(places.name==name[n])].empty:
                                 # 获取价格
                                 print('开始获取：',name[n],'的价格')
@@ -108,15 +105,15 @@ class Fangan():
                                 c = Comment(name[n])
                                 comment = c.comment
                                 pic = c.pic_url
-                                index = '%03d'% len(places)
-                                self.data_list.append(int(str(i+1)+index))
-                                place = pd.DataFrame({'name':[name[n]],'price':[price],'description':[comment],'picurl':[pic]})
+                                index = len(places)
+                                self.data_list.append([i+1,self.city_id*1000+index])
+                                place = pd.DataFrame({'spot_id':[self.city_id*1000+index],'name':[name[n]],'price':[price],'description':[comment],'picurl':[pic]})
                                 places = pd.concat([places,place],ignore_index=True,axis=0)
                                 places.to_csv(path,encoding = 'UTF-8')
                             else:
                                 index = places[places.name==name[n]].index[0]
-                                index = '%03d'% index
-                                self.data_list.append(int(str(i+1)+index))
+                                index =  index
+                                self.data_list.append([i+1,self.city_id*1000+index])
                                 places.to_csv(path)
 
 
@@ -127,7 +124,8 @@ class Fangan():
             soup = BeautifulSoup(self.html,'html.parser') 
             img = soup.find('img',class_='pil-figure-image')
             imgsrc = 'https:' + img['src']
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.57'}
+            ua = UserAgent()
+            headers = {'User-Agent':ua.random}
             response = requests.get(imgsrc,headers=headers)
             pic_url = 'image/' + imgsrc.split('/')[-1]
             
@@ -143,8 +141,8 @@ class Fangan():
 
     
 
-
-a = Fangan(1,'https://vacations.ctrip.com/travel/detail/p26417599','xian')
+if __name__ == '__main':
+    a = Fangan(1,1,'https://vacations.ctrip.com/travel/detail/p26417599','xian')
 
 
 

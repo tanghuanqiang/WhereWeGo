@@ -8,6 +8,7 @@ from selenium import webdriver
 import time
 from lxml import etree
 import requests
+from fake_useragent import UserAgent
 class Hotel():
     '''
     输入城市的拼音为city，景点名字为name
@@ -37,7 +38,8 @@ class Hotel():
         
         return driver
     def get_pic(self):
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.119 Safari/537.36'}
+        ua = UserAgent()
+        headers = {'User-Agent':ua.random}
         for i in range(len(self.urls)):
             response = requests.get(self.urls[i],headers=headers)
             pic_url = 'image/'+self.urls[i].split('/')[-1] 
@@ -46,10 +48,10 @@ class Hotel():
                f.write(response.content)
     def get_html(self):
         driver = self.open_brower()
-        time.sleep(1)
-        element = driver.find_element_by_xpath('//*[@id="m_searchBox"]/div[3]/label/input')
+        time.sleep(1)  
+        element = driver.find_element_by_xpath('/html/body/div[6]/div[2]/div[3]/label/input')
         element.send_keys(self.name)
-        element = driver.find_element_by_xpath('//*[@id="m_searchBox"]/div[4]')
+        element = driver.find_element_by_xpath('/html/body/div[6]/div[2]/div[4]')
         element.click()
         # 下拉
         js = "document.documentElement.scrollTop=1000"  
