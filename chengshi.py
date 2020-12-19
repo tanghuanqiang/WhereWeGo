@@ -121,7 +121,7 @@ class ChengShi():
         start = time.time()
         max_number = self.city_id*1000 + 40   #最多方案
         self.all_number_init_()
-        for i in range(1,15):#页数 一页三十个方案
+        for i in range(15,18):#页数 一页三十个方案
             if self.all_number <= max_number:     
                 page_url = self.city_url + str(i)
                 driver = self.open_brower()
@@ -168,12 +168,13 @@ class ChengShi():
                                     temp = pd.DataFrame(temp)
                                     spotlist = pd.concat([spotlist,temp],ignore_index=True,axis=0)
                                     for j in range(2,12):
-                                        temp = {'spotlist_id':[self.all_number],'housemodel_id':[f.data_list[j]]}
-                                        temp = pd.DataFrame(temp)
-                                        spotlist_houselist = pd.concat([spotlist_houselist,temp],ignore_index=True,axis=0)
+                                        if type(f.data_list[j])!= list:
+                                            temp = {'spotlist_id':[self.all_number],'housemodel_id':[f.data_list[j]]}
+                                            temp = pd.DataFrame(temp)
+                                            spotlist_houselist = pd.concat([spotlist_houselist,temp],ignore_index=True,axis=0)
                                         
-                                    for j in range(12,len(f.data_list)):
-                                        if len(f.data_list[j])!= 2 :
+                                    for j in range(2,len(f.data_list)):
+                                        if type(f.data_list[j])!= list :
                                             pass
                                         else:
                                             temp = {'spotlist_id':[self.all_number],'model_day':[int(f.data_list[j][0])],'spotmodel_id':[f.data_list[j][1]]}
@@ -203,12 +204,8 @@ class ChengShi():
         end = time.time()
         print('总花费时间为',end-start)
 citys = [[2020,'西安'],[2021,'重庆'],[2022,'广州'],[2023,'北京']]
-#for c in citys:
- #   ChengShi(c[0],c[1])     
-#a = ChengShi(city_id=2020, name='西安')
-#a = ChengShi(city_id=2021, name='重庆')
-#a = ChengShi(city_id=2022, name='广州')
-#a = ChengShi(city_id=2023, name='北京')    
+c = citys[2]
+ChengShi(c[0],c[1])     
 
     
     

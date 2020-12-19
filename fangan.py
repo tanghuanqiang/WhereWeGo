@@ -13,6 +13,7 @@ import requests
 import pandas as pd
 from comment import Comment
 from hotel import Hotel
+import os
 from fake_useragent import UserAgent
 class Fangan():
     '''
@@ -126,12 +127,14 @@ class Fangan():
             imgsrc = 'https:' + img['src']
             ua = UserAgent()
             headers = {'User-Agent':ua.random}
-            response = requests.get(imgsrc,headers=headers)
-            pic_url = 'image/' + imgsrc.split('/')[-1]
-            
+            pic_url = 'image/' + imgsrc.split('/')[-1] 
+            if os.path.exists(pic_url):
+                pass
+            else:
+                response = requests.get(imgsrc,headers=headers)
+                with open(pic_url,'wb') as f:
+                   f.write(response.content)
             print('方案图片存储为：',pic_url,'成功')
-            with open(pic_url,'wb') as f:
-               f.write(response.content)
             self.data_list.insert(1,pic_url)
 
     def end_line(self):
