@@ -204,8 +204,8 @@ class ChengShi():
         end = time.time()
         print('总花费时间为',end-start)
 citys = [[2020,'西安'],[2021,'重庆'],[2022,'广州'],[2023,'北京']]
-c = citys[2]
-ChengShi(c[0],c[1])     
+for c in citys:
+    ChengShi(c[0],c[1])     
 
     
     
