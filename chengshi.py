@@ -121,7 +121,7 @@ class ChengShi():
         start = time.time()
         max_number = self.city_id*1000 + 40   #最多方案
         self.all_number_init_()
-        for i in range(15,18):#页数 一页三十个方案
+        for i in range(1,18):#页数 一页三十个方案
             if self.all_number <= max_number:     
                 page_url = self.city_url + str(i)
                 driver = self.open_brower()
